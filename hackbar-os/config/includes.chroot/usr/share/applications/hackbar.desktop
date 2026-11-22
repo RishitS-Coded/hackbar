@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=HackBar
+Comment=The ethical hacker's toolkit
+Exec=/usr/local/bin/hackbar
+Icon=/usr/share/pixmaps/hackbar-logo.png
+Terminal=false
+Categories=System;Security;
+Keywords=hacking;security;pentest;

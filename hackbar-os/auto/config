@@ -1,0 +1,30 @@
+#!/bin/sh
+# HackBar OS - live-build configuration.
+# Change the options here, then rebuild.
+set -e
+
+ARCH="$(dpkg --print-architecture)"
+
+case "$ARCH" in
+  amd64) BOOTLOADERS="syslinux,grub-efi" ;;
+  arm64) BOOTLOADERS="grub-efi" ;;
+  *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+esac
+
+lb config noauto \
+  --mode debian \
+  --distribution trixie \
+  --architectures "$ARCH" \
+  --archive-areas "main contrib non-free non-free-firmware" \
+  --binary-images iso-hybrid \
+  --bootloaders "$BOOTLOADERS" \
+  --debian-installer none \
+  --memtest none \
+  --apt-recommends false \
+  --chroot-squashfs-compression-type xz \
+  --iso-application "HackBar OS" \
+  --iso-volume "HACKBAR_OS" \
+  --iso-publisher "HackBar" \
+  --image-name "hackbar-os" \
+  --bootappend-live "boot=live components quiet hostname=hackbar username=hacker" \
+  "${@}"

@@ -1,0 +1,44 @@
+#!/bin/bash
+# Re-brands the Calamares installer as "HackBar OS".
+# Written defensively: if Debian's installer files aren't where we expect,
+# the installer still works, it just keeps Debian's look.
+set +e
+
+SRC=/usr/share/calamares/branding/debian
+DST=/usr/share/calamares/branding/hackbar
+
+if [ -d "$SRC" ]; then
+  rm -rf "$DST"
+  cp -a "$SRC" "$DST"
+
+  DESC="$DST/branding.desc"
+  if [ -f "$DESC" ]; then
+    sed -i \
+      -e 's/^\(\s*componentName:\).*/\1  hackbar/' \
+      -e 's/^\(\s*productUrl:\).*/\1  "https:\/\/github.com\/RishitS-Coded\/hackbar"/' \
+      -e 's/Debian GNU\/Linux/HackBar OS/g' \
+      -e 's/\bDebian\b/HackBar OS/g' \
+      "$DESC"
+
+    # Swap the installer's logo, icon and welcome picture for ours
+    copy_image() {  # $1 = key in branding.desc, $2 = our image
+      [ -f "$2" ] || return
+      name="$(grep -E "^\s*$1\s*:" "$DESC" | head -n 1 | sed -E 's/^[^:]*:\s*"?([^"#]+)"?.*/\1/' | tr -d ' ')"
+      [ -n "$name" ] && cp "$2" "$DST/$name"
+    }
+    copy_image productLogo    /usr/share/pixmaps/hackbar-logo.png
+    copy_image productIcon    /usr/share/pixmaps/hackbar-logo.png
+    copy_image productWelcome /usr/share/backgrounds/hackbar/wallpaper.png
+  fi
+
+  # Tell Calamares to use the new branding
+  if [ -f /etc/calamares/settings.conf ]; then
+    sed -i 's/^branding:.*/branding: hackbar/' /etc/calamares/settings.conf
+  fi
+fi
+
+# Hide Debian's own "Install Debian" launcher; ours is hackbar-install.desktop
+rm -f /usr/share/applications/install-debian.desktop
+rm -f /etc/skel/Desktop/install-debian.desktop /etc/skel/Desktop/calamares*.desktop 2>/dev/null
+
+exit 0

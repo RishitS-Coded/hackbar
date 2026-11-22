@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+"""HackBar OS first-boot setup wizard: welcome -> ethics agreement -> ready."""
+import os
+import subprocess
+import sys
+
+try:
+    import tkinter as tk
+except ImportError:
+    sys.exit(0)
+
+FLAG = os.path.expanduser("~/.config/hackbar/setup-done")
+if os.path.exists(FLAG) and "--force" not in sys.argv:
+    sys.exit(0)
+
+BG, FG, ACCENT, MUTED = "#0d1117", "#e6edf3", "#2ea043", "#8b949e"
+FONT = ("DejaVu Sans", 11)
+TITLE = ("DejaVu Sans", 22, "bold")
+
+
+class Wizard(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("HackBar OS Setup")
+        self.configure(bg=BG)
+        w, h = 680, 440
+        x = (self.winfo_screenwidth() - w) // 2
+        y = (self.winfo_screenheight() - h) // 2
+        self.geometry(f"{w}x{h}+{x}+{y}")
+        self.resizable(False, False)
+        self.agreed = tk.IntVar(value=0)
+        self.body = tk.Frame(self, bg=BG)
+        self.body.pack(fill="both", expand=True, padx=36, pady=(28, 8))
+        self.bar = tk.Frame(self, bg=BG)
+        self.bar.pack(fill="x", padx=36, pady=(0, 24))
+        self.page = 0
+        self.show()
+
+    def label(self, text, font=FONT, fg=FG, **kw):
+        return tk.Label(self.body, text=text, font=font, fg=fg, bg=BG,
+                        justify="left", anchor="w", wraplength=600, **kw)
+
+    def button(self, text, command, primary=True, state="normal"):
+        return tk.Button(
+            self.bar, text=text, command=command, state=state, font=FONT,
+            bg=ACCENT if primary else "#21262d", fg="white", relief="flat",
+            activebackground="#3fb950", activeforeground="white",
+            padx=18, pady=6, bd=0, disabledforeground="#484f58")
+
+    def clear(self):
+        for frame in (self.body, self.bar):
+            for child in frame.winfo_children():
+                child.destroy()
+
+    def show(self):
+        self.clear()
+        [self.welcome, self.ethics, self.ready][self.page]()
+
+    def go(self, step):
+        self.page += step
+        self.show()
+
+    # ---- pages ----
+    def welcome(self):
+        self.label("Welcome to HackBar OS", TITLE, ACCENT).pack(fill="x", pady=(10, 14))
+        self.label("An ethical hacker's toolkit, without the command line mess.\n\n"
+                   "This quick setup takes about 30 seconds. HackBar OS runs live from "
+                   "your USB stick or virtual machine, so nothing is changed on your computer.",
+                   ).pack(fill="x")
+        self.button("Next", lambda: self.go(1)).pack(side="right")
+
+    def ethics(self):
+        self.label("Before you start", TITLE, ACCENT).pack(fill="x", pady=(10, 14))
+        self.label("These tools are powerful. Use them only to learn, and only on:\n\n"
+                   "   \u2022  systems and networks you own, or\n"
+                   "   \u2022  targets you have clear written permission to test.\n\n"
+                   "Testing anything else can be illegal and can hurt real people.").pack(fill="x")
+        nxt = self.button("Next", lambda: self.go(1), state="disabled")
+
+        def toggle():
+            nxt.config(state="normal" if self.agreed.get() else "disabled")
+
+        tk.Checkbutton(
+            self.body, text="  I understand and agree to use HackBar OS ethically and legally.",
+            variable=self.agreed, command=toggle, font=FONT, fg=FG, bg=BG,
+            selectcolor="#21262d", activebackground=BG, activeforeground=FG,
+            anchor="w", justify="left", bd=0, highlightthickness=0,
+        ).pack(fill="x", pady=(18, 0))
+        self.button("Back", lambda: self.go(-1), primary=False).pack(side="left")
+        nxt.pack(side="right")
+
+    def ready(self):
+        self.label("You're all set", TITLE, ACCENT).pack(fill="x", pady=(10, 14))
+        self.label("Start HackBar from the menu at any time, or type  hackbar  in a terminal.\n\n"
+                   "Login:  user  hacker   \u2022   password  live\n"
+                   "Run  sudo passwd hacker  to change it.\n\n"
+                   "Tip: Wi-Fi attacks need a USB adapter that supports monitor mode.",
+                   ).pack(fill="x")
+        self.button("Finish", self.finish, primary=False).pack(side="right")
+        self.button("Open HackBar", self.open_hackbar).pack(side="right", padx=10)
+        if os.path.exists("/usr/bin/calamares"):
+            self.button("Install to disk", self.install, primary=False).pack(side="left")
+
+    def open_hackbar(self):
+        subprocess.Popen(["/usr/local/bin/hackbar"])
+        self.finish()
+
+    def install(self):
+        subprocess.Popen(["sudo", "-E", "calamares"])
+        self.finish()
+
+    def finish(self):
+        os.makedirs(os.path.dirname(FLAG), exist_ok=True)
+        open(FLAG, "w").close()
+        self.destroy()
+
+
+if __name__ == "__main__":
+    Wizard().mainloop()

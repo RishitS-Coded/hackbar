@@ -1,0 +1,17 @@
+#!/bin/sh
+# Applies the HackBar wallpaper and dark theme at every login.
+WALL=/usr/share/backgrounds/hackbar/wallpaper.png
+command -v xfconf-query >/dev/null 2>&1 || exit 0
+sleep 4
+
+xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s Adwaita-dark 2>/dev/null
+
+PROPS="$(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep '/last-image$')"
+if [ -n "$PROPS" ]; then
+  for p in $PROPS; do
+    xfconf-query -c xfce4-desktop -p "$p" -s "$WALL"
+  done
+else
+  xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -n -t string -s "$WALL"
+fi
+exit 0

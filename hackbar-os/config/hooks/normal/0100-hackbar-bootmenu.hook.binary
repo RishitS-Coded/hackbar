@@ -1,0 +1,17 @@
+#!/bin/bash
+# Renames the boot menu entries from Debian/"Live system" to HackBar OS.
+# Written defensively: if a file isn't found, it quietly does nothing.
+set +e
+
+BIN=.
+[ -d binary ] && BIN=binary
+
+for f in "$BIN"/isolinux/*.cfg "$BIN"/boot/grub/*.cfg "$BIN"/boot/grub/*/*.cfg "$BIN"/EFI/boot/*.cfg; do
+  [ -f "$f" ] || continue
+  sed -i \
+    -e 's/Debian GNU\/Linux/HackBar OS/g' \
+    -e 's/^\(\s*menu title\).*/\1 HackBar OS/I' \
+    -e 's/Live system/HackBar OS (live)/g' \
+    "$f"
+done
+exit 0

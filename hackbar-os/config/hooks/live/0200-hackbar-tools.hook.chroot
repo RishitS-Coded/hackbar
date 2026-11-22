@@ -1,0 +1,43 @@
+#!/bin/bash
+# Installs the security tools HackBar wraps, ONE AT A TIME.
+# If a tool isn't available for this architecture, it is skipped (not fatal)
+# and listed in /usr/share/hackbar/tools-skipped.txt on the finished system.
+set +e
+export DEBIAN_FRONTEND=noninteractive
+export LC_ALL=C
+
+mkdir -p /usr/share/hackbar
+INSTALLED=/usr/share/hackbar/tools-installed.txt
+SKIPPED=/usr/share/hackbar/tools-skipped.txt
+: > "$INSTALLED"
+: > "$SKIPPED"
+
+apt-get update -qq >/dev/null 2>&1
+
+TOOLS="
+hydra john hashcat aircrack-ng gobuster ffuf nikto sqlmap whatweb dirb wfuzz
+masscan netdiscover hping3 socat tshark macchanger snmp smbclient smbmap
+ettercap-text-only dnsenum dnsrecon theharvester sslscan binwalk foremost
+steghide libimage-exiftool-perl radare2 gdb strace ltrace proxychains4 tor
+seclists
+firmware-linux-free firmware-misc-nonfree firmware-iwlwifi firmware-realtek
+firmware-atheros
+"
+
+for pkg in $TOOLS; do
+  if apt-get install -y -qq --no-install-recommends "$pkg" >/dev/null 2>&1; then
+    echo "$pkg" >> "$INSTALLED"
+  else
+    echo "$pkg" >> "$SKIPPED"
+  fi
+done
+
+# Wordlist folder that HackBar's Linux commands expect
+mkdir -p /usr/share/wordlists
+[ -d /usr/share/dirb/wordlists ] && ln -sfn /usr/share/dirb/wordlists /usr/share/wordlists/dirb
+[ -f /usr/share/john/password.lst ] && ln -sf /usr/share/john/password.lst /usr/share/wordlists/john.lst
+[ -d /usr/share/seclists ] && ln -sfn /usr/share/seclists /usr/share/wordlists/seclists
+
+apt-get clean >/dev/null 2>&1
+echo "HackBar tools: $(wc -l < "$INSTALLED") installed, $(wc -l < "$SKIPPED") skipped."
+exit 0

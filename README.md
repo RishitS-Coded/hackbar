@@ -117,3 +117,31 @@ remote system.
 ## License
 
 MIT — see `LICENSE`.
+
+### macOS
+
+HackBar runs natively on macOS — not just `--dry-run`. It automatically
+swaps Linux-only commands for their real macOS equivalents (`ip addr` →
+`ifconfig`, `nmcli` → `networksetup`/`system_profiler`, `ss -tuln` →
+`lsof -i`, `sha256sum` → `shasum -a 256`, and so on), so the search bar
+shows you the command that actually works on your machine.
+
+\`\`\`bash
+bash install_macos.sh
+\`\`\`
+
+Uses [Homebrew](https://brew.sh) (installed separately if you don't have
+it) to install the same tool set as above, wherever Homebrew packages them,
+plus the `common.txt` and `rockyou.txt` wordlists under `~/wordlists/`.
+**Do not run this with `sudo`** — Homebrew refuses to run as root.
+
+Two things Homebrew can't fully cover, which the script tells you about:
+- **Metasploit** isn't on Homebrew — the script gives you Rapid7's official
+  installer command.
+- **Wi-Fi monitor mode** (needed by `airmon-ng`/`airodump-ng`/`aireplay-ng`)
+  generally isn't supported by Apple's built-in Wi-Fi hardware, especially
+  on Apple Silicon. You'll need an external USB adapter with a
+  monitor-mode-capable chipset, or run those specific commands in a Linux
+  VM instead.
+  
+

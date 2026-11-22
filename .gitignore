@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.hackbar/
+*.cap
+hashes.txt
+capture*

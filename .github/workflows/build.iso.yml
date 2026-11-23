@@ -1,0 +1,76 @@
+name: Build HackBar OS ISO
+
+# Run it by hand: repo -> Actions tab -> "Build HackBar OS ISO" -> Run workflow.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # lets the workflow attach the ISO to a Release
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }} ISO
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+          df -h /
+
+      - name: Pull HackBar into the OS image
+        run: |
+          if [ ! -f hackbar.py ]; then
+            echo "hackbar.py was not found at the top of the repo."; exit 1
+          fi
+          mkdir -p hackbar-os/config/includes.chroot/opt/hackbar
+          for f in hackbar.py install.sh check_tools.sh LICENSE README.md; do
+            if [ -f "$f" ]; then cp "$f" hackbar-os/config/includes.chroot/opt/hackbar/; fi
+          done
+          chmod +x hackbar-os/auto/* hackbar-os/ci-build.sh
+          chmod +x hackbar-os/config/hooks/*/* hackbar-os/config/includes.chroot/usr/local/bin/*
+
+      - name: Build the ISO (inside a Debian container)
+        run: |
+          docker run --rm --privileged \
+            -v "$PWD/hackbar-os:/build" \
+            debian:trixie bash /build/ci-build.sh
+
+      - name: Prepare the download (split if over GitHub's 2 GB file limit)
+        run: |
+          cd hackbar-os
+          ISO="$(ls ./*.iso | head -n 1)"
+          SIZE="$(stat -c %s "$ISO")"
+          NAME="hackbar-os-${{ matrix.arch }}.iso"
+          mkdir -p ../out
+          if [ "$SIZE" -gt 2000000000 ]; then
+            split -b 1900M -d "$ISO" "../out/$NAME.part"
+            sha256sum "$ISO" | sed "s#$ISO#$NAME#" > "../out/$NAME.sha256"
+            echo "ISO is $SIZE bytes, split into parts. Join with: cat $NAME.part* > $NAME" > ../out/JOIN-ME.txt
+          else
+            mv "$ISO" "../out/$NAME"
+            (cd ../out && sha256sum "$NAME" > "$NAME.sha256")
+          fi
+          ls -lh ../out
+
+      - name: Publish to a GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="hackbar-os-${{ matrix.arch }}-run${{ github.run_number }}"
+          gh release create "$TAG" out/* \
+            --title "HackBar OS (${{ matrix.arch }}) build ${{ github.run_number }}" \
+            --notes "Test build of HackBar OS for ${{ matrix.arch }}. Check the sha256 file after downloading." \
+            --prerelease

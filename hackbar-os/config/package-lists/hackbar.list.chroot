@@ -41,3 +41,6 @@ openssh-client
 netcat-openbsd
 tcpdump
 nmap
+# Live-session support
+live-boot
+live-config

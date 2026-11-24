@@ -35,6 +35,24 @@ background=/usr/share/backgrounds/hackbar/wallpaper.png
 theme-name=Adwaita-dark
 LDM
 
+# --- the live account: created here so login never depends on boot-time setup ---
+id hacker >/dev/null 2>&1 || useradd -m -s /bin/bash hacker
+echo 'hacker:live' | chpasswd
+for g in sudo audio video plugdev netdev cdrom dip; do
+  getent group "$g" >/dev/null 2>&1 && usermod -aG "$g" hacker
+done
+mkdir -p /etc/sudoers.d
+echo 'hacker ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/hackbar
+chmod 440 /etc/sudoers.d/hackbar
+
+# --- log straight in to the desktop as hacker ---
+mkdir -p /etc/lightdm/lightdm.conf.d
+cat > /etc/lightdm/lightdm.conf.d/99-hackbar-autologin.conf <<'LDM2'
+[Seat:*]
+autologin-user=hacker
+autologin-user-timeout=0
+LDM2
+
 # --- make our scripts runnable ---
 chmod +x /usr/local/bin/hackbar /usr/local/bin/hackbar-setup /usr/local/bin/hackbar-theme 2>/dev/null
 

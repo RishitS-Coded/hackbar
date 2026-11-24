@@ -1,0 +1,22 @@
+# Installer (Calamares). Kept in its own file so you can delete it to build a live-only ISO.
+calamares
+calamares-settings-debian
+dosfstools
+e2fsprogs
+parted
+rsync
+squashfs-tools
+cryptsetup
+efibootmgr
+
+# Boot loader that gets written to the disk on install (UEFI machines)
+#if ARCHITECTURES amd64
+grub-efi-amd64
+grub-efi-amd64-signed
+shim-signed
+#endif
+#if ARCHITECTURES arm64
+grub-efi-arm64
+grub-efi-arm64-signed
+shim-signed
+#endif

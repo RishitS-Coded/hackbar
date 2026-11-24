@@ -1,0 +1,23 @@
+#!/bin/sh
+# Starts the bottom dock. On first login it fills it with HackBar's apps.
+command -v plank >/dev/null 2>&1 || exit 0
+
+DIR="$HOME/.config/plank/dock1/launchers"
+if [ ! -d "$DIR" ]; then
+  mkdir -p "$DIR"
+  add() { printf '[PlankDockItemPreferences]\nLauncher=file://%s\n' "$2" > "$DIR/$1.dockitem"; }
+  add hackbar  /usr/share/applications/hackbar.desktop
+  add terminal /usr/share/applications/xfce4-terminal.desktop
+  add firefox  /usr/share/applications/firefox-esr.desktop
+  add files    /usr/share/applications/thunar.desktop
+  add install  /usr/share/applications/hackbar-install.desktop
+  add settings /usr/share/applications/xfce-settings-manager.desktop
+
+  S="net.launchpad.plank.dock.settings:/net/launchpad/plank/docks/dock1/"
+  gsettings set "$S" dock-items "['hackbar.dockitem','terminal.dockitem','firefox.dockitem','files.dockitem','install.dockitem','settings.dockitem']" 2>/dev/null
+  gsettings set "$S" theme 'Transparent' 2>/dev/null
+  gsettings set "$S" icon-size 52 2>/dev/null
+  gsettings set "$S" zoom-enabled true 2>/dev/null
+  gsettings set "$S" zoom-percent 160 2>/dev/null
+fi
+exec plank

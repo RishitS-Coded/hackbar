@@ -1,0 +1,10 @@
+#!/bin/sh
+# Starts HackBar. Opens a terminal window if you launched it from the menu.
+APP=/opt/hackbar/hackbar.py
+if [ ! -f "$APP" ]; then
+  echo "HackBar was not found at $APP"; exit 1
+fi
+if [ -t 1 ]; then
+  exec python3 "$APP" "$@"
+fi
+exec xfce4-terminal --title="HackBar" -x python3 "$APP" "$@"

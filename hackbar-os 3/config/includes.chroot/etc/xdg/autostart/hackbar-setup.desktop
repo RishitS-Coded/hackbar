@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=HackBar Setup
+Exec=/usr/local/bin/hackbar-setup
+OnlyShowIn=XFCE;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

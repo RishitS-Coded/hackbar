@@ -1,0 +1,76 @@
+#!/bin/bash
+# HackBar OS desktop setup: macOS-style look (top bar + dock). Runs at every login.
+# Look & feel is applied once per user; the wallpaper and dock start every time.
+WALL=/usr/share/backgrounds/hackbar/wallpaper.png
+FLAGDIR="$HOME/.config/hackbar"
+FLAG="$FLAGDIR/desktop-init-done"
+
+command -v xfconf-query >/dev/null 2>&1 || exit 0
+[ -f /usr/share/hackbar/theme.conf ] && . /usr/share/hackbar/theme.conf
+GTK_THEME="${GTK_THEME:-Adwaita-dark}"
+ICON_THEME="${ICON_THEME:-Adwaita}"
+FONT="Cantarell 10"
+fc-list 2>/dev/null | grep -qi "Inter" && FONT="Inter 10"
+XFWM_THEME="Default"
+[ -d "/usr/share/themes/$GTK_THEME/xfwm4" ] && XFWM_THEME="$GTK_THEME"
+
+sleep 3   # let the desktop services finish starting
+
+setx() { xfconf-query -c "$1" -p "$2" -n -t "$3" -s "$4" 2>/dev/null; }
+
+if [ ! -f "$FLAG" ]; then
+  # window theme, icons, cursor, font
+  setx xsettings /Net/ThemeName string "$GTK_THEME"
+  setx xsettings /Net/IconThemeName string "$ICON_THEME"
+  [ -n "$CURSOR_THEME" ] && setx xsettings /Gtk/CursorThemeName string "$CURSOR_THEME"
+  setx xsettings /Gtk/FontName string "$FONT"
+  setx xfwm4 /general/theme string "$XFWM_THEME"
+
+  # macOS-style window buttons on the left, centred title, shadows
+  setx xfwm4 /general/button_layout string "CHM|"
+  setx xfwm4 /general/title_alignment string center
+  setx xfwm4 /general/use_compositing bool true
+  setx xfwm4 /general/show_frame_shadow bool true
+  setx xfwm4 /general/show_popup_shadow bool true
+
+  # clean desktop: no icons
+  setx xfce4-desktop /desktop-icons/style int 0
+
+  # dock: launchers + settings
+  if command -v dconf >/dev/null 2>&1; then
+    DIR="$HOME/.config/plank/dock1/launchers"
+    mkdir -p "$DIR"
+    ITEMS=""
+    for app in hackbar firefox-esr xfce4-terminal thunar hackbar-install xfce4-settings-manager; do
+      if [ -f "/usr/share/applications/$app.desktop" ]; then
+        printf '[PlankDockItemPreferences]\nLauncher=file:///usr/share/applications/%s.desktop\n' "$app" > "$DIR/$app.dockitem"
+        ITEMS="$ITEMS'$app.dockitem',"
+      fi
+    done
+    B=/net/launchpad/plank/docks/dock1
+    dconf write $B/dock-items "[${ITEMS%,}]"
+    dconf write $B/theme "'Transparent'"
+    dconf write $B/icon-size 48
+    dconf write $B/zoom-enabled true
+    dconf write $B/zoom-percent 150
+    dconf write $B/position "'bottom'"
+    dconf write $B/alignment "'center'"
+    dconf write $B/hide-mode "'intelligent'"
+  fi
+
+  mkdir -p "$FLAGDIR"; touch "$FLAG"
+fi
+
+# wallpaper (every login; works whatever the monitor is called)
+PROPS="$(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep '/last-image$')"
+if [ -n "$PROPS" ]; then
+  for p in $PROPS; do xfconf-query -c xfce4-desktop -p "$p" -s "$WALL"; done
+else
+  setx xfce4-desktop /backdrop/screen0/monitor0/workspace0/last-image string "$WALL"
+fi
+
+# start the dock
+if command -v plank >/dev/null 2>&1 && ! pgrep -x plank >/dev/null; then
+  plank >/dev/null 2>&1 &
+fi
+exit 0

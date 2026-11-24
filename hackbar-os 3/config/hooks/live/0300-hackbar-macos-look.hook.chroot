@@ -1,0 +1,49 @@
+#!/bin/bash
+# Installs the macOS-style look: dock (Plank), WhiteSur window theme, icons, cursors, Inter font.
+# Everything is optional: if a download or install fails, the desktop falls back to
+# the dark Adwaita theme (hackbar-theme handles that), and the build keeps going.
+set +e
+export DEBIAN_FRONTEND=noninteractive
+export LC_ALL=C
+
+mkdir -p /usr/share/hackbar
+apt-get update -qq >/dev/null 2>&1
+
+for pkg in plank fonts-inter fonts-firacode sassc libglib2.0-dev-bin gtk2-engines-murrine gnome-themes-extra; do
+  apt-get install -y -qq --no-install-recommends "$pkg" >/dev/null 2>&1 || echo "skipped: $pkg"
+done
+
+fetch_and_install() {  # $1 = repo name, $2... = install.sh arguments
+  repo="$1"; shift
+  rm -rf "/tmp/ws-$repo"
+  if git clone --depth=1 "https://github.com/vinceliuice/$repo.git" "/tmp/ws-$repo" >/dev/null 2>&1; then
+    ( cd "/tmp/ws-$repo" && chmod +x install.sh && timeout 900 ./install.sh "$@" >>/usr/share/hackbar/macos-look.log 2>&1 )
+    echo "$repo: install finished (exit $?)"
+  else
+    echo "$repo: download failed"
+  fi
+  rm -rf "/tmp/ws-$repo"
+}
+
+fetch_and_install WhiteSur-gtk-theme    -d /usr/share/themes -c Dark
+fetch_and_install WhiteSur-icon-theme   -d /usr/share/icons
+fetch_and_install WhiteSur-cursors
+
+# Work out the theme names that actually got installed
+GTK="$(ls /usr/share/themes 2>/dev/null | grep -E '^WhiteSur-Dark$' | head -n 1)"
+[ -z "$GTK" ] && GTK="$(ls /usr/share/themes 2>/dev/null | grep '^WhiteSur-Dark' | head -n 1)"
+ICON="$(ls /usr/share/icons 2>/dev/null | grep -E '^WhiteSur-dark$' | head -n 1)"
+[ -z "$ICON" ] && ICON="$(ls /usr/share/icons 2>/dev/null | grep -i '^WhiteSur' | grep -vi cursor | head -n 1)"
+CUR="$(ls /usr/share/icons 2>/dev/null | grep -E '^WhiteSur-cursors$' | head -n 1)"
+
+cat > /usr/share/hackbar/theme.conf <<CONF
+GTK_THEME=$GTK
+ICON_THEME=$ICON
+CURSOR_THEME=$CUR
+CONF
+echo "macOS look: gtk='$GTK' icons='$ICON' cursor='$CUR'"
+
+for d in /usr/share/icons/*/; do gtk-update-icon-cache -f -q "$d" >/dev/null 2>&1; done
+rm -rf /tmp/ws-* /root/.cache 2>/dev/null
+apt-get clean >/dev/null 2>&1
+exit 0

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Install HackBar OS
+Comment=Install HackBar OS to this computer's disk
+Exec=sudo -E calamares
+Icon=/usr/share/pixmaps/hackbar-logo.png
+Terminal=false
+Categories=System;

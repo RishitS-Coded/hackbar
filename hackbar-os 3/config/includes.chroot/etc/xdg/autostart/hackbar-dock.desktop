@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=HackBar Dock
+Exec=/usr/local/bin/hackbar-dock
+OnlyShowIn=XFCE;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

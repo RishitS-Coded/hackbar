@@ -1,0 +1,59 @@
+#!/bin/bash
+# Gives the system its own identity: HackBar OS instead of Debian.
+set +e
+
+# --- os-release (what "cat /etc/os-release" and system tools read) ---
+dpkg-divert --local --rename --add /usr/lib/os-release >/dev/null 2>&1
+cat > /usr/lib/os-release <<'OSR'
+PRETTY_NAME="HackBar OS 0.1"
+NAME="HackBar OS"
+VERSION_ID="0.1"
+VERSION="0.1 (Debian-based)"
+VERSION_CODENAME=trixie
+ID=hackbar
+ID_LIKE=debian
+HOME_URL="https://github.com/RishitS-Coded/hackbar"
+BUG_REPORT_URL="https://github.com/RishitS-Coded/hackbar/issues"
+OSR
+ln -sf ../usr/lib/os-release /etc/os-release
+
+# --- login banners ---
+printf 'HackBar OS 0.1 \\n \\l\n\n' > /etc/issue
+printf 'HackBar OS 0.1\n' > /etc/issue.net
+cat > /etc/motd <<'MOTD'
+
+  HackBar OS - the ethical hacker's toolkit, without the command line mess.
+  Type "hackbar" to start. Only test systems you own or have permission to test.
+
+MOTD
+
+# --- login screen background (used when auto-login is off) ---
+mkdir -p /etc/lightdm/lightdm-gtk-greeter.conf.d
+cat > /etc/lightdm/lightdm-gtk-greeter.conf.d/99-hackbar.conf <<'LDM'
+[greeter]
+background=/usr/share/backgrounds/hackbar/wallpaper.png
+theme-name=Adwaita-dark
+LDM
+
+# --- the live account: created here so login never depends on boot-time setup ---
+id hacker >/dev/null 2>&1 || useradd -m -s /bin/bash hacker
+echo 'hacker:live' | chpasswd
+for g in sudo audio video plugdev netdev cdrom dip; do
+  getent group "$g" >/dev/null 2>&1 && usermod -aG "$g" hacker
+done
+mkdir -p /etc/sudoers.d
+echo 'hacker ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/hackbar
+chmod 440 /etc/sudoers.d/hackbar
+
+# --- log straight in to the desktop as hacker ---
+mkdir -p /etc/lightdm/lightdm.conf.d
+cat > /etc/lightdm/lightdm.conf.d/99-hackbar-autologin.conf <<'LDM2'
+[Seat:*]
+autologin-user=hacker
+autologin-user-timeout=0
+LDM2
+
+# --- make our scripts runnable ---
+chmod +x /usr/local/bin/hackbar /usr/local/bin/hackbar-setup /usr/local/bin/hackbar-theme /usr/local/bin/hackbar-dock 2>/dev/null
+
+exit 0
